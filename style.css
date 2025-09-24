@@ -54,3 +54,74 @@ a:hover {
         padding: 10px;
     }
 }
+
+.project-card {
+    max-width: 360px;
+    padding: 24px;
+    margin: 20px auto;
+    border-radius: 18px;
+    background: #fff0f6;
+    border: 2px solid #ffb6d9;
+    box-shadow: 0 60px 14px rgba(255, 182, 217, 0.4);
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.project-card:hover {
+    transform: scale(1.03);
+}
+
+.project-card h2 {
+    margin-bottom: 12px;
+    font-size: 22px;
+    color: #e75480;
+    text-shadow: 1px 1px #ffd6e9;
+}
+
+.project-card p {
+    font-size: 15px;
+    color: #555;
+}
+
+.game-container {
+    margin-top: 12px;
+}
+
+input[type="number"]:focus {
+    border-color: #ff66b2;
+    box-shadow: 0 0 6px #ff99cc;
+}
+
+button {
+    padding: 10px 16px;
+    font-size: 14px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #ff99cc;
+    color: white;
+    font-weight: bold;
+    transition: backgroun 0.2s ease, transform 0.1s ease;
+}
+
+button:hover {
+    background: #ff66b2;
+    transform: scale(1.05);
+}
+
+#feedback {
+    margin-top: 14px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #d63384;
+}
+
+#play-again {
+    margin-top: 14px;
+    display: none;
+    background: #ff80bf;
+}
+
+#play-again:hover {
+    background: #ff4da6;
+}
