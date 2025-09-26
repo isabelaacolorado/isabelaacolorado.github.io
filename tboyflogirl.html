@@ -1,381 +1,202 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>Tree Boy & Flower Girl </title>
-<meta name="viewport" cointent="width=device-width,initial-scale=1" />
-<style>
-    :root{--bg:#1e293b;--text:#e6eef8}
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial}
-    #container{display:flex;flex-direction:column;align-items:center;padding:14px}
-    canvas{background:#94a3b8;border:8px solid #0f1724;box-shadow:0 8px 30px rgba(0,0,0,.6)}
-    header{width:100%;max-width:980px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-    h1{font-size:18px;margin:0}
-    .info{font-size:13px;opacity:.9}
-    .controls{display:flex;gap:8px;align-items:center}
-    button{background:#0b1220;color:var(--text);border:1px solid #243240;padding:6px 10pc;border-radius:6px;cursor:pointer}
-    button:active{transform:translateY(1px)}
-    .hud{display:flex;gap:12px;align-items:center}
-    .small{font-size:13px;opacity:.95}
-    .note{font-size:12px;color:#cbd5e1;margin-top:8px;max-width:980px}
-    .credit{font-size:12px;color:#94a3b8;margin-top:6px}
-</style>
+  <meta charset="utf-8">
+  <title>Tree Boy & Flower Girl</title>
+  <style>
+    :root {
+      --bg: #1e293b;
+      --text: #e6eef8;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto;
+      border: 3px solid #fff;
+      background: #000;
+    }
+    #status {
+      margin: 10px;
+      font-size: 18px;
+    }
+  </style>
 </head>
 <body>
-<div id="container">
-    <header>
-        <div>
-            <h1>Tree Boy & Flower Girl - Demo</h1>
-            <div class="info small">Tree Boy: Arrow Keys (← → ↑) - Flower Girl: WASD (A D W)</div>
-        </div>
-        <div class="controls">
-            <div class="hud small" id="status">Level 1</div>
-            <button id="restartBtn">Restart Level 1</button>
-            <button id="nextBtn">Skip Level</button>
-        </div>
-    </header>
+  <h1>🌳 Tree Boy & 🌸 Flower Girl</h1>
+  <p id="status">Level 1 - Demo</p>
+  <canvas id="game" width="800" height="600"></canvas>
 
-    <canvas id="c" width="960" height="540"></canvas>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
 
-    <div class="note">
-        Goals: both Tree Boy and Flower Girl must be reach their own doors. Tree boy is safe in green/tree zones; Flower Girl is safe in pink/flower zones.
-    </div>
-</div>
+    // Controls
+    const keys = {};
+    window.addEventListener("keydown", e => keys[e.key] = true);
+    window.addEventListener("keyup", e => keys[e.key] = false);
 
-<script>
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
+    function makePlayer(x, y, color, controls) {
+      return { x, y, w: 30, h: 40, color, vy: 0, onGround: false, controls };
+    }
 
-const W = canvas.width, H = canvas.height;
-const gravity = 0.6;
-const FRICTION = 0.85;
-const PLAYER_W = 34, PLAYER_H = 46;
+    const treeBoy = makePlayer(50, 500, "green", { left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp" });
+    const flowerGirl = makePlayer(100, 500, "pink", { left: "a", right: "d", jump: "w" });
 
-function makePlayer(x, y, color, control){
-    return {
-        x, y, w: PLAYER_W, h: PLAYER_H,
-        dx:0, dy:0, onGround:false,
-        color, control, alive:true
-    };
-}
+    const gravity = 0.6;
+    const jumpPower = -12;
+    const moveSpeed = 4;
 
-const treeBoy = makePlayer(80, H-140, '#2e8b57', {left:'ArrowLeft', right:'ArrowRight', jump:'ArrowUp'});
-const flowerGirl = makePlayer(150, H-140, '#ff89c2', {left:'KeyA', right:'KeyD', jump:'KeyW'});
+    let currentLevelIndex = 0;
+    let level = null;
 
-const keys = {};
-document.addEventListener('keydown', e=> keys[e.code] = true);
-document.addEventListener('keyup', e=> keys[e.code] = false);
-
-const levels = [
-    {
-        spawn: {tree: {x:80,y: H-140}, flower: {x:150,y: H-140} },
-        platforms: [
-            {x:0,y:H-80,w:W,h:80},
-            {x:220,y:360,w:140,h:18},
-            {x:420,y:300,w:120,h:18},
-        ],
-        moving: [
-            {x:560,y:420,w:120,h:18, vx:2},
-        ], 
-        hazards: [
-            {x:320,y:420,w:120,h:40,type:'flower'},
-            {x:640,y:440,w:120,h:40,type:'tree'}
-        ], 
-        switches: [
-            {x:360,y:328,w:24, id:'s1', actor:'flower', on:false}
-        ],
-        gates: [
-            {id:'g1', x:700,y:260,w:80,h:18, closer:true}
-        ],
-        doors: {
-            tree: {x:820,y:H-128,w:40,h:64,color:'#2e8b57'},
-            flower: {x:880,y:236,w:40,h:64,color:'#ff89c2'}
-        }
-    },
-
-    {
-        spawn: {tree:{x:40,y:H-140}, flower:{x:120,y:H-140}},
-        platforms: [
-            {x:0,y:H-80,w:W,h:80},
-            {x:180,y:380,w:100,h:18},
-            {x:340,y:320,w:120,h:18},
-            {x:540,y:260,w:120,h:18}
-        ],
-        moving: [
-            {x:100,y:420,w:100,h:18, vx:-1.5, vy:0, rangeMin:180, rangeMaw:420, axis:'x'},
-            {x:700,y:340,w:90,h:18, vx:0, vy:1.5, rangeMin:300, rangeMax:420, axis:'y'}
+    const levels = [
+      {
+        solids: [
+          { x: 0, y: 580, w: 800, h: 20 },
+          { x: 200, y: 500, w: 100, h: 20 },
+          { x: 400, y: 400, w: 100, h: 20 },
+          { x: 600, y: 300, w: 100, h: 20 }
         ],
         hazards: [
-            {x:100,y:440,w:120,h:40,type:'tree'},
-            {x:420,y:440,w:120,h:40,type:'flower'}
+          { x: 350, y: 565, w: 50, h: 15, type: "water" }
         ],
-        switches: [
-            {x:200,y:356,w:24,h:24, id:'s2', actor:'tree', on:false}
+        exits: [
+          { x: 700, y: 260, w: 40, h: 40 }
         ],
-        gates: [
-            {id:'g2', x:620,y:220,w:120,w:120,h:18, closed:true}
+        moving: []
+      },
+      {
+        solids: [
+          { x: 0, y: 580, w: 800, h: 20 },
+          { x: 150, y: 480, w: 120, h: 20 },
+          { x: 350, y: 380, w: 120, h: 20 },
+          { x: 550, y: 280, w: 120, h: 20 }
         ],
-        doors: {
-            tree:{x:40,y:180,w:40,h:64,color:'#2e8b57'},
-            flower:{x:880,y:200,w:40,h:64,color:'#ff89c2'}
-        }
+        hazards: [
+          { x: 250, y: 565, w: 80, h: 15, type: "lava" }
+        ],
+        exits: [
+          { x: 700, y: 240, w: 40, h: 40 }
+        ],
+        moving: [
+          { x: 100, y: 420, w: 100, h: 18, vx: -1.5, vy: 0, rangeMin: 180, rangeMax: 420, axis: "x" }
+        ]
+      }
+    ];
+
+    function loadLevel(i) {
+      currentLevelIndex = i;
+      level = JSON.parse(JSON.stringify(levels[i]));
+      treeBoy.x = 50; treeBoy.y = 500; treeBoy.vy = 0;
+      flowerGirl.x = 100; flowerGirl.y = 500; flowerGirl.vy = 0;
+      document.getElementById("status").textContent = `Level ${i+1} - Demo`;
     }
-];
 
-let currentLevelIndex = 0;
-let level = null;
+    function rectsOverlap(a, b) {
+      return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+    }
 
-function loadLevel(i){
-    currentLevelIndex = i,
-    level = JSON.parse(JSON.stringify(levels[i]));
+    function getSolids() {
+      return [...level.solids, ...level.moving];
+    }
 
-    Object.assign(treeBoy, makePlayer(level.spawn.tree.x, level.spawn.tree.y, treeBoy.color, treeBoy.controls));
-    updateHUD();
-}
-
-function restartLevel(){ loadLevel(currentLevelIndex); }
-function nextLevel(){ loadLevel((currentLevelIndex+1) % levels.length); }
-
-document.getElementById('restartBtn').addEventListener('click', restartLevel);
-document.getElementById('nextBtn').addEventListener('click',() => {nextLevel(); });
-
-function rectsOverlap(a,b){
-    return !(a.x + a.w <= b.x || a.x >= b.x + b.w || a.y + a.h <= b.y + b.h);
-}
-
-function updatePlayer(player){
-      if(!player.alive) return;
-      const ctrl = player.controls;
-      const left = keys[ctrl.left];
-      const right = keys[ctrl.right];
-      const jump = keys[ctrl.jump];
-
-      if(left) player.dx = -3.1;
-      else if(right) player.dx = 3.2;
-      else player.dx *= FRICTION;
-
-      if(jump && player.onGround){
-        player.dy = -11;
-        player.onGround = false;
+    function updatePlayer(p) {
+      // movement
+      if (keys[p.controls.left]) p.x -= moveSpeed;
+      if (keys[p.controls.right]) p.x += moveSpeed;
+      if (keys[p.controls.jump] && p.onGround) {
+        p.vy = jumpPower;
+        p.onGround = false;
       }
 
-      player.dy += gravity;
-      if(player.dy > 14) player.dy = 14;
+      // gravity
+      p.vy += gravity;
+      p.y += p.vy;
 
-      player.x += player.dx;
-      resolveHorizontalCollisions(player);
-
-      player.y += player.dy;
-      player.onGround = false;
-      resolveVerticalCollisions(player);
-
-      if(player.x < -50) player.x = -50;
-      if(player.x > W + 50) player.x = W + 50;
-      if(player.y > H + 200) {
-        player.alive = false;
-        setTimeout(()=>{ restartLevel(); }, 600);
+      // collisions
+      p.onGround = false;
+      for (const s of getSolids()) {
+        if (rectsOverlap(p, s)) {
+          if (p.vy > 0 && p.y + p.h > s.y && p.y + p.h - p.vy <= s.y) {
+            p.y = s.y - p.h;
+            p.vy = 0;
+            p.onGround = true;
+          }
+        }
       }
-}
 
-function resolveHorizontalCollisions(p){
-    const solids = getSolids();
-    solids.forEach(s => {
-        if(rectsOverlap(p,s)){
-            if(p.dx > 0) p.x = s.x - p.w - 0.01;
-            else if(p.dx < 0) p.x = s.x + s.w + 0.01;
-            p.dx = 0;
+      // hazards
+      for (const h of level.hazards) {
+        if (rectsOverlap(p, h)) restartLevel();
+      }
+
+      // exits
+      for (const ex of level.exits) {
+        if (rectsOverlap(p, ex)) {
+          if (p === treeBoy && rectsOverlap(flowerGirl, ex)) {
+            if (currentLevelIndex + 1 < levels.length) loadLevel(currentLevelIndex+1);
+            else document.getElementById("status").textContent = "🎉 You won!";
+          }
         }
-    });
-}
-
-function resolveVerticalCollisions(p){
-    const solids = getSolids();
-    solids.forEach(s => {
-        if(rectsOverlap(p,s)){
-            if(p.dy > 0){
-                p.y = s.y - p.h - 0.01;
-                p.dy = 0;
-                p.onGround = true;
-            } else if(p.dy < 0){
-                p.y = s.y + s.h + 0.01;
-                p.dy = 0;
-            }
-        }
-    });
-}
-
-function getSolids(){
-    let solids = [];
-    level.platforms.forEach(p => solids.push(p));
-    level.moving.forEach(p => solids.push(p));
-    level.gates.forEach(g => { if(g.closed) solids.push({x:g.x,y:g.y,w:g.w,h:g.h}); });
-    return solids;
-}
-
-function updateMoving(){
-    level.moving.forEach(m=>{
-        if(m.axis == 'x'){
-            m.x += m.vx;
-            if(m.x < m.rangeMin || m.x > m.rangeMax){ m.vx *= -1; m.x += m.vw*2; }
-        } else {
-            m.y += m.vy;
-            if(m.y < m.rangeMin || m.y > m.rangeMax){ m.vy *= -1; m.y += m.vy*2; }
-        }
-    });
-}
-
-function updateSwitches(){
-    level.switches.forEach(sw => {
-        const pTree = rectOverlap(treeBody, sw);
-        const pFlower = rectsOverlap(flowerGirl, sw);
-        let shouldBeOn = false;
-        if(sw.actor == 'either') shouldBeOn = pTree || pFlower;
-        else if(sw.actor == 'tree') shouldBeOn = pTree;
-        else if(sw.actor == 'flower') shouldBeOn = pFlower;
-        if(shouldBeOn !== sw.on){
-            sw.on = shouldBeOn;
-            level.gates.forEach(g => {
-                if(g.id.includes(sw.id.replace('s','g'))) return ;
-                if(g.id == 'g' + sw.id.replace('s', '')) {
-                    g.closed = !sw.on;
-                }
-            });
-        }
-    });
-}
-
-function hazards(){
-    [ {p:treeBoy, safe:'tree'}, {p:flowerGirl, safe:'flower'} ].forEach(obj=>{
-        const p = obj.p; if(!p.alive) return;
-        level.hazards.forEach(h=>{
-            if(rectsOverlap(p,h)){
-                if(h.type !== obj.safe){
-                    p.alive = false;
-                    setTimeout(()=>{ restartLevel(); }, 600);
-                }
-            }
-        });
-    });
-}
-
-function doors(){
-    const t = treeBoy, f = flowerGirl;
-    const td = level.doors.tree, fd = level.doors.flower;
-    if(rectsOverlap(t,td) && rectsOverlap(f,fd)){
-        setTimeout(()=>{
-            currentLevelIndex++;
-            if(currentLevelIndex >= levels.length){
-                alert('🎉Congrats!! You completed all demo levels! Returning to level 1;)');
-                currentLevelIndex = 0;
-            } else {
-                alert('Level completed :) Loading the next level.');
-            }
-            loadLevel(currentLevelIndex);
-        }, 120);
+      }
     }
-}
 
-function drawRect(o, style){
-    ctx.fillStyle = style;
-    ctx.fillStyle = style; ctx.fillRect(o.x, o.y, o.w, o.h);
-}
+    function restartLevel() {
+      loadLevel(currentLevelIndex);
+    }
 
-function drawRoundedRect(x,y,w,h,r, style){
-    ctx.fillStyle = style;
-    ctx.beginPath();
-    ctx.moveTo(x+r,y);
-    ctx.arcTo(x+w,y,x+w,y+h,r);
-    ctx.arcTo(x+w,y+h,x,y+h,r);
-    ctx.arcTo(x,y+h,x,y,r);
-    ctx.arcTo(x,y,x+w,y,r)
-    ctx.closePath();
-    ctx.fill();
-}
-
-function drawPlayer(p){
-    if(!p.alive) return;
-    ctx.fillStyle = p.color;
-    drawRoundedRect(p.x, p.y, p.w, p.h, 6, p.color);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(p.x + p.w*0.18, p.y + p.h*0.25, 6, 6);
-    ctx.fillRect(p.x + p.w*0.6, p.y + p.h*0.25, 6, 6);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(p.x + p.w*0.62, p.y + p.h*0.28, 3, 3);
-    ctx.fillRect(p.x + p.w*0.62, p.y + p.h*0.28, 3, 3);
-}
-
-function loop(){
-    updateMoving();
-    updatePlayer(treeBoy);
-    updatePlayer(flowerGirl);
-    updateSwitches();
-    hazards();
-    doors();
-    ctx.clearRect(0,0,W,H);
-    let g = ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0, '#b9d3ff'); g.addColorStop(1, '#6fa8ff');
-    ctx.fillStyle = g;
-    ctx.fillRect(0,0,W,H);
-
-    level.platforms.forEach(p=>{
-        drawRect(p, '#374151');
-    });
-
-    level.moving.forEach(m=>{
-        drawRect(m, '$475569');
-    });
-
-    level.gates.forEach(gate=>{
-        const col = gate.closed ? '#7b3fbf' : 'rgba(123,63,191,0.25)';
-        drawRect({x:gate.x,y:gate.y,w:gate.w,h:gate.h}, col);
-    });
-
-    level.hazards.forEach(h=>{
-        if(h.type == 'tree'){
-            drawRect(h, 'rgba(46,139,87,0.95)');
-            ctx.fillStyle='rgba(255,255,255,0.08)';
-            ctx.fillRect(h.x+6,h.y+6,20,6,);
+    function updateMoving() {
+      level.moving.forEach(m => {
+        if (m.axis === "x") {
+          m.x += m.vx;
+          if (m.x < m.rangeMin || m.x > m.rangeMax) m.vx *= -1;
         } else {
-            drawRect(h, 'rgba(255,137,194,0.95)');
-            ctx.fillStyle='rgba(255,255,255,0.08)';
-            ctx.fillRect(h.x+6,h.y+6,20,6);
+          m.y += m.vy;
+          if (m.y < m.rangeMin || m.y > m.rangeMax) m.vy *= -1;
         }
-    });
+      });
+    }
 
-    level.switches.forEach(sw=>{
-        const base = sw.on ? '#ffd166' : '#ffb42';
-        drawRect(sw, base);
-        ctx.fillStyle='#11'; ctx.font='12px sans-serif';
-        ctx.fillText(sw.actor === 'treet' ? 'T' : sw.actor === 'flower' ? 'F' : 'E', sw.x+6, sw.y+16);
-    });
+    function drawRect(o, style) {
+      ctx.fillStyle = style;
+      ctx.fillRect(o.x, o.y, o.w, o.h);
+    }
 
-    const td = level.doors.tree, fd = level.door.flower;
-    drawRect(td, td.color); drawRect(fd, fd.color);
-    ctx.fillStyle='#082'; ctx.fonts='12px sans=serif';
-    ctx.fillText('Tree', td.x+4, td.y+td.h+12);
-    ctx.fillStyle='#801'; ctx.fillText('Flower', fd.x+4, fd.y+fd.h+12);
+    function drawPlayer(p) {
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+    }
 
-    drawPlayer(treeBoy);
-    drawPlayer(flowerGirl);
+    function loop() {
+      ctx.clearRect(0, 0, W, H);
 
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(8,8,220,64);
-    ctx.fillStle = '#fff';
-    ctx.font = '14px system-ui';
-    ctx.fillText('Level ${currentLevelIndex+1} / ${levels.length}', 18, 28);
-    ctx.font = '13px system-ui';
-    ctx.fillText('Tree Boy: arrows', 18,46);
-    ctx.fillText('Flower Girl: WASD', 18, 62);
+      // draw level
+      level.solids.forEach(s => drawRect(s, "#888"));
+      level.moving.forEach(m => drawRect(m, "#aaa"));
+      level.hazards.forEach(h => drawRect(h, h.type === "water" ? "blue" : "red"));
+      level.exits.forEach(ex => drawRect(ex, "gold"));
 
-    requestAnimationFrame(loop);
-}
+      // update and draw players
+      updatePlayer(treeBoy);
+      updatePlayer(flowerGirl);
+      drawPlayer(treeBoy);
+      drawPlayer(flowerGirl);
 
-function updateHUD(){
-    document.getElementById('status').textContent = 'Level $(currentLevelIndex+1} - Demo';
-}
+      updateMoving();
 
-loadLevel(0);
-loop();
-</script>
+      requestAnimationFrame(loop);
+    }
+
+    loadLevel(0);
+    loop();
+  </script>
 </body>
 </html>
