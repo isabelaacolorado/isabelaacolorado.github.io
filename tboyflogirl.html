@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<met charset="utf-8" />
+<meta charset="utf-8" />
 <title>Tree Boy & Flower Girl </title>
 <meta name="viewport" cointent="width=device-width,initial-scale=1" />
 <style>
-    :root{--bg:#1e293b;--panel:--text:#e6eef8}
+    :root{--bg:#1e293b;--text:#e6eef8}
     html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial}
     #container{display:flex;flex-direction:column;align-items:center;padding:14px}
     canvas{background:#94a3b8;border:8px solid #0f1724;box-shadow:0 8px 30px rgba(0,0,0,.6)}
@@ -46,7 +46,7 @@
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 
-const W = canvas.wdith, H = canvas.height;
+const W = canvas.width, H = canvas.height;
 const gravity = 0.6;
 const FRICTION = 0.85;
 const PLAYER_W = 34, PLAYER_H = 46;
@@ -55,7 +55,7 @@ function makePlayer(x, y, color, control){
     return {
         x, y, w: PLAYER_W, h: PLAYER_H,
         dx:0, dy:0, onGround:false,
-        color, controls, alive:true
+        color, control, alive:true
     };
 }
 
@@ -127,13 +127,13 @@ let level = null;
 
 function loadLevel(i){
     currentLevelIndex = i,
-    level = JSON.parse(JSON,stringify(levels[i]));
+    level = JSON.parse(JSON.stringify(levels[i]));
 
-    Object.assign(treeBody, makePlayer(level.spawn.tree.x, level.spawn.tree.y, treeBoy.color, treeBody.controls));
+    Object.assign(treeBoy, makePlayer(level.spawn.tree.x, level.spawn.tree.y, treeBoy.color, treeBoy.controls));
     updateHUD();
 }
 
-function restartLevel(){ loadLevel(currentLevellIndex); }
+function restartLevel(){ loadLevel(currentLevelIndex); }
 function nextLevel(){ loadLevel((currentLevelIndex+1) % levels.length); }
 
 document.getElementById('restartBtn').addEventListener('click', restartLevel);
@@ -147,7 +147,7 @@ function updatePlayer(player){
       if(!player.alive) return;
       const ctrl = player.controls;
       const left = keys[ctrl.left];
-      const right = leys[centrl.right];
+      const right = keys[ctrl.right];
       const jump = keys[ctrl.jump];
 
       if(left) player.dx = -3.1;
@@ -180,7 +180,7 @@ function updatePlayer(player){
 function resolveHorizontalCollisions(p){
     const solids = getSolids();
     solids.forEach(s => {
-        if(rectsOverlap(p,)){
+        if(rectsOverlap(p,s)){
             if(p.dx > 0) p.x = s.x - p.w - 0.01;
             else if(p.dx < 0) p.x = s.x + s.w + 0.01;
             p.dx = 0;
@@ -191,7 +191,7 @@ function resolveHorizontalCollisions(p){
 function resolveVerticalCollisions(p){
     const solids = getSolids();
     solids.forEach(s => {
-        if(reactsOverlap(p,s)){
+        if(rectsOverlap(p,s)){
             if(p.dy > 0){
                 p.y = s.y - p.h - 0.01;
                 p.dy = 0;
@@ -209,6 +209,7 @@ function getSolids(){
     level.platforms.forEach(p => solids.push(p));
     level.moving.forEach(p => solids.push(p));
     level.gates.forEach(g => { if(g.closed) solids.push({x:g.x,y:g.y,w:g.w,h:g.h}); });
+    return solids;
 }
 
 function updateMoving(){
@@ -274,11 +275,12 @@ function doors(){
     }
 }
 
-function drawRect(){
+function drawRect(o, style){
+    ctx.fillStyle = style;
     ctx.fillStyle = style; ctx.fillRect(o.x, o.y, o.w, o.h);
 }
 
-function drawRoundRect(x,y,w,h,r, style){
+function drawRoundedRect(x,y,w,h,r, style){
     ctx.fillStyle = style;
     ctx.beginPath();
     ctx.moveTo(x+r,y);
@@ -354,7 +356,7 @@ function loop(){
     ctx.fillStyle='#801'; ctx.fillText('Flower', fd.x+4, fd.y+fd.h+12);
 
     drawPlayer(treeBoy);
-    drawPlayer(flowerGir);
+    drawPlayer(flowerGirl);
 
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fillRect(8,8,220,64);
