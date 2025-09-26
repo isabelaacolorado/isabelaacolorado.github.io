@@ -50,7 +50,7 @@
     window.addEventListener("keyup", e => keys[e.key] = false);
 
     function makePlayer(x, y, color, controls) {
-      return { x, y, w: 30, h: 40, color, vy: 0, onGround: false, controls };
+      return { x, y, w: 30, h: 40, color, vy: 0, onGround: false, controls, symbol };
     }
 
     const treeBoy = makePlayer(50, 500, "green", { left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp" }, "🌳");
@@ -257,8 +257,6 @@
       // draw level
 //      level.solids.forEach(s => drawRect(s, "#888"));
 //      level.moving.forEach(m => drawRect(m, "#aaa"));
-      level.hazards.forEach(h => drawRect(h, h.type === "water" ? "blue" : "red"));
-      level.exits.forEach(ex => drawRect(ex, "gold"));
       level.solids.forEach(drawPlatform);
       level.moving.forEach(drawPlatform);
       level.hazards.forEach(drawHazard);
