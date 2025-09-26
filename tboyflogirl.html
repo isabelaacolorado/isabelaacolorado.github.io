@@ -173,6 +173,7 @@
 
     function drawCloud(x, y) {
         ctx.fillStyle = "white";
+        ctx.beginPath();
         ctx.arc(x, y, 20, 0, Math.PI*2);
         ctx.arc(x+25, y+10, 25,0, Math.PI*2);
         ctx.arc(x-25, y+10, 25, 0, Math.PI*2);
@@ -182,7 +183,7 @@
 
     function drawTree(x,y) {
         ctx.fillStyle = "#8B4513";
-        ctx.fillReact(x+15, y, 20, 40);
+        ctx.fillRect(x+15, y, 20, 40);
         ctx.fillStyle = "green";
         ctx.beginPath();
         ctx.arc(x+25, y, 30, 0, Math.PI*2);
@@ -211,7 +212,7 @@
     }
 
     function drawPlayer(p) {
-      ctx.fillSty;e = p.colo;
+      ctx.fillStyle = p.color;
       ctx.fillRect(p.x, p.y, p.w, p.h);
       ctx.font = "20px Arial";
       ctx.fillText(p.symbol, p.x+3, p.y+25);
@@ -226,7 +227,7 @@
         } else if (h.type == "lava") {
             ctx.fillStyle = "red";
             ctx.fillRect(h.x, h.y, h.w, h.h);
-            ctx.fillStyle = "organe";
+            ctx.fillStyle = "orange";
             ctx.fillRect(h.w, h.y, h.w, 3);
         }
     }
@@ -242,6 +243,8 @@
 
     function loop() {
 
+      ctx.clearRect(0, 0, W, H);
+
       drawCloud(100, 100);
       drawCloud(300, 80);
       drawCloud(600, 120);
@@ -251,17 +254,15 @@
       drawFlower(200, 570);
       drawFlower(250, 570);
 
-      ctx.clearRect(0, 0, W, H);
-
       // draw level
-      level.solids.forEach(s => drawRect(s, "#888"));
-      level.moving.forEach(m => drawRect(m, "#aaa"));
+//      level.solids.forEach(s => drawRect(s, "#888"));
+//      level.moving.forEach(m => drawRect(m, "#aaa"));
       level.hazards.forEach(h => drawRect(h, h.type === "water" ? "blue" : "red"));
       level.exits.forEach(ex => drawRect(ex, "gold"));
       level.solids.forEach(drawPlatform);
       level.moving.forEach(drawPlatform);
       level.hazards.forEach(drawHazard);
-      level.exit.forEach(drawExit);
+      level.exits.forEach(drawExit);
 
       // update and draw players
       updatePlayer(treeBoy);
