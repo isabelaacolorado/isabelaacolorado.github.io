@@ -25,11 +25,17 @@
       margin: 10px;
       font-size: 18px;
     }
+
+    #controls {
+        margin-top: 8px;
+        font-size: 14px;
+    }
   </style>
 </head>
 <body>
   <h1>🌳 Tree Boy & 🌸 Flower Girl</h1>
   <p id="status">Level 1 - Demo</p>
+  <div id="controls">🌳 Tree Boy: Arrow Keys | 🌸 Flower Girl: WASD</div>
   <canvas id="game" width="800" height="600"></canvas>
 
   <script>
@@ -47,8 +53,8 @@
       return { x, y, w: 30, h: 40, color, vy: 0, onGround: false, controls };
     }
 
-    const treeBoy = makePlayer(50, 500, "green", { left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp" });
-    const flowerGirl = makePlayer(100, 500, "pink", { left: "a", right: "d", jump: "w" });
+    const treeBoy = makePlayer(50, 500, "green", { left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp" }, "🌳");
+    const flowerGirl = makePlayer(100, 500, "pink", { left: "a", right: "d", jump: "w" }, "🌸");
 
     const gravity = 0.6;
     const jumpPower = -12;
@@ -165,14 +171,41 @@
       });
     }
 
-    function drawRect(o, style) {
-      ctx.fillStyle = style;
-      ctx.fillRect(o.x, o.y, o.w, o.h);
+    function drawPlatform(p) {
+        ctx.fillStyle = "#654321";
+        cts.fillRect(p.x, p.y, p.w, p.h);
+        ctx.fillStyle = "#228B22";
+        cts.fillRect(p.x, p.y, p.w, 5);
     }
 
     function drawPlayer(p) {
-      ctx.fillStyle = p.color;
+      ctx.fillSty;e = p.colo;
       ctx.fillRect(p.x, p.y, p.w, p.h);
+      ctx.font = "20px Arial";
+      ctx.fillText(p.symbol, p.x+3, p.y+25);
+    }
+
+    function drawHazard(h) {
+        if (h.type == "water") {
+            ctx.fillStyle = "blue";
+            ctx.fillRect(h.x, h.y, h.w, h.h);
+            ctx.fillStyle = "lightblue";
+            ctx.fillRect(h.x, h.y, h.w, 3);
+        } else if (h.type == "lava") {
+            ctx.fillStyle = "red";
+            ctx.fillRect(h.x, h.y, h.w, h.h);
+            ctx.fillStyle = "organe";
+            ctx.fillRect(h.w, h.y, h.w, 3);
+        }
+    }
+
+    function drawExit(ex) {
+        ctx.fillStyle = "yellow";
+        ctx.beginPath();
+        ctx.arc(ex.x + ex.w/2, ex.y + ex.h/2, 20, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = "white";
+        ctx.stroke();
     }
 
     function loop() {
@@ -183,6 +216,10 @@
       level.moving.forEach(m => drawRect(m, "#aaa"));
       level.hazards.forEach(h => drawRect(h, h.type === "water" ? "blue" : "red"));
       level.exits.forEach(ex => drawRect(ex, "gold"));
+      level.solids.forEach(drawPlatform);
+      level.moving.forEach(drawPlatform);
+      level.hazards.forEach(drawHazard);
+      level.exit.forEach(drawExit);
 
       // update and draw players
       updatePlayer(treeBoy);
